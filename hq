@@ -1,0 +1,71 @@
+[33mcommit d641d441d35863de3beddc17304560f1b397dd81[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m
+Author: mercedesmagnelli <mechamagnelli@gmail.com>
+Date:   Wed Oct 19 12:23:57 2022 -0300
+
+    [TABLAS MIGRADAS] - variante, tipo_variante
+
+[33mcommit aef9c02c87a07fe61b560fa2b3e042316e5d6430[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Mati Añaños <mananos@frba.utn.edu.ar>
+Date:   Mon Oct 17 12:44:37 2022 -0300
+
+    Agrego migraciones - Posible consulta para migrar Cupon_X_Venta
+
+[33mcommit b2b6522e816a122660f2a7fb80bfd45754bd0745[m
+Author: mercedesmagnelli <mechamagnelli@gmail.com>
+Date:   Sun Oct 16 18:52:04 2022 -0300
+
+    migramos localidades
+
+[33mcommit c4b7c6ba5ea533bb9672cc50c0c2d67a2c65bd2d[m
+Author: mercedesmagnelli <mechamagnelli@gmail.com>
+Date:   Sun Oct 16 18:27:05 2022 -0300
+
+    arreglamos variantes y sus referencias
+
+[33mcommit eb2f54d1eba773b1366af14f7f81c075c88540d8[m
+Author: mercedesmagnelli <mechamagnelli@gmail.com>
+Date:   Sun Oct 16 17:58:22 2022 -0300
+
+    ya no se usa row_number, ahora las claves de algunas son autogeneradas
+
+[33mcommit 45b7faa4f9fc3be37ce4e672ddbaf2f70bb21a31[m
+Author: mercedesmagnelli <mechamagnelli@gmail.com>
+Date:   Sun Oct 16 17:43:34 2022 -0300
+
+    ahora si funcionan los drops
+
+[33mcommit 67012869973ce8a35b6d6719c4b55a132c8e6685[m
+Author: matyy-a <82655987+matyy-a@users.noreply.github.com>
+Date:   Wed Oct 12 10:48:23 2022 -0300
+
+    [Migración] - Provincia, Marca, Material, Categoria, MedioEnvio, Canal
+
+[33mcommit 6703af80c3da7f9280f52983734dd238971eb84d[m
+Author: matyy-a <82655987+matyy-a@users.noreply.github.com>
+Date:   Wed Oct 12 10:43:31 2022 -0300
+
+    [Update] - Creación de tablas con sus respectivas FK
+
+[33mcommit 5dc979496532c9b5a01c4cfa430f15a2a9f62963[m
+Author: MateoMichini1 <mateomichini@MacBook-Pro-de-Mateo.local>
+Date:   Wed Oct 5 01:05:16 2022 -0300
+
+    UPDATE FK - Revisar comentarios
+
+[33mcommit 17899b45c99e0431515bcccccce8f4f49c9b680c[m
+Author: matyy-a <82655987+matyy-a@users.noreply.github.com>
+Date:   Tue Oct 4 23:43:23 2022 -0300
+
+    Update FK - Faltan 3 Tablas
+
+[33mcommit 2d93c6366a5be226d6e2d8dbb7843c4de1523156[m
+Author: mercedesmagnelli <mechamagnelli@gmail.com>
+Date:   Sun Oct 2 14:02:14 2022 -0300
+
+    avance de creacion inicial
+
+[33mcommit e268ef68bd3e5ffb6e3fbfbf8a94e2a2e625fb69[m
+Author: Mercedes Magnelli <62451237+mercedesmagnelli@users.noreply.github.com>
+Date:   Tue Sep 27 19:40:26 2022 -0300
+
+    Initial commit
