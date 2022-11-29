@@ -608,6 +608,13 @@ AS
 SELECT (columnas)
 FROM  (tablas)
 
+-- UY EN ESTE TMB VA A HABER QUE USAR UN OVER ROW NUMER y no me sale jajan't
+-- FALTA MIGRAR LA CATEGORIA y ponerle el row number 
+select ID_PRODUCTO, ID_RANGO_EDAD, SUM(UNIDADES) from BI_M_AL_CUBO.BI_HECHO_VENTA HV 
+GROUP BY ID_PRODUCTO, ID_RANGO_EDAD
+
+
+
 
 /********************
     EJERCICIO 04
