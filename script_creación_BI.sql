@@ -43,6 +43,10 @@ IF OBJECT_ID('BI_M_AL_CUBO.FK_HECHO_VENTA_ID_ENVIO', 'F') IS NOT NULL
   ALTER TABLE BI_M_AL_CUBO.BI_HECHO_VENTA DROP CONSTRAINT FK_HECHO_VENTA_ID_ENVIO
 GO
 
+IF OBJECT_ID('BI_M_AL_CUBO.FK_HECHO_VENTA_ID_CATEGORIA', 'F') IS NOT NULL
+  ALTER TABLE BI_M_AL_CUBO.BI_HECHO_VENTA DROP CONSTRAINT FK_HECHO_VENTA_ID_CATEGORIA
+GO
+
 IF OBJECT_ID('BI_M_AL_CUBO.FK_HECHO_DESCUENTO_ID_VENTA', 'F') IS NOT NULL
   ALTER TABLE BI_M_AL_CUBO.BI_HECHO_DESCUENTO DROP CONSTRAINT FK_HECHO_DESCUENTO_ID_VENTA
 GO
@@ -71,6 +75,8 @@ IF OBJECT_ID('BI_M_AL_CUBO.FK_HECHO_COMPRA_ID_TIEMPO', 'F') IS NOT NULL
   ALTER TABLE BI_M_AL_CUBO.BI_HECHO_COMPRA DROP CONSTRAINT FK_HECHO_COMPRA_ID_TIEMPO
 GO
 
+
+
 -- DROPS DE TABLAS
 IF OBJECT_ID('BI_M_AL_CUBO.BI_CANAL_VENTA', 'U') IS NOT NULL
     DROP TABLE BI_M_AL_CUBO.BI_CANAL_VENTA
@@ -90,6 +96,10 @@ GO
 
 IF OBJECT_ID('BI_M_AL_CUBO.BI_MEDIO_PAGO', 'U') IS NOT NULL
     DROP TABLE BI_M_AL_CUBO.BI_MEDIO_PAGO
+GO
+
+IF OBJECT_ID('BI_M_AL_CUBO.BI_CATEGORIA', 'U') IS NOT NULL
+    DROP TABLE BI_M_AL_CUBO.BI_CATEGORIA
 GO
 
 IF OBJECT_ID('BI_M_AL_CUBO.BI_RANGO_EDAD', 'U') IS NOT NULL
@@ -203,6 +213,10 @@ IF OBJECT_ID('BI_M_AL_CUBO.MIGRAR_BI_RANGO_EDAD') IS NOT NULL
   DROP PROCEDURE BI_M_AL_CUBO.MIGRAR_BI_RANGO_EDAD
 GO
 
+IF OBJECT_ID('BI_M_AL_CUBO.MIGRAR_CATEGORIA') IS NOT NULL
+  DROP PROCEDURE BI_M_AL_CUBO.MIGRAR_CATEGORIA
+GO
+
 
 --DROP ESQUEMA
 IF EXISTS (SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'BI_M_AL_CUBO')
@@ -214,6 +228,12 @@ CREATE SCHEMA BI_M_AL_CUBO
 GO
 
 -- CREACION DE TABLAS
+
+CREATE TABLE BI_M_AL_CUBO.BI_CATEGORIA(
+	CATEGORIA_ID INT PRIMARY KEY,
+	DESCRIPCION_CATEGORIA NVARCHAR(255)
+);
+GO
 
 CREATE TABLE BI_M_AL_CUBO.BI_CANAL_VENTA(
 	CANAL_VENTA_ID INT PRIMARY KEY,
@@ -304,9 +324,10 @@ CREATE TABLE BI_M_AL_CUBO.BI_HECHO_VENTA(
 	ID_CANAL_VENTA INT,
 	ID_ENVIO INT,
 	ID_PROVINCIA INT,
+	ID_CATEGORIA INT,
 	PRECIO DECIMAL(18,2),
 	UNIDADES DECIMAL(18,2)
-	PRIMARY KEY(ID_HECHO_VENTA, ID_VENTA, ID_PRODUCTO, ID_MEDIO_PAGO, ID_TIEMPO, ID_CLIENTE, ID_RANGO_EDAD, ID_CANAL_VENTA, ID_ENVIO)
+	PRIMARY KEY(ID_HECHO_VENTA, ID_VENTA, ID_PRODUCTO, ID_MEDIO_PAGO, ID_TIEMPO, ID_CLIENTE, ID_RANGO_EDAD, ID_CANAL_VENTA, ID_CATEGORIA, ID_ENVIO)
 );
 GO
 
@@ -314,8 +335,9 @@ CREATE TABLE BI_M_AL_CUBO.BI_HECHO_DESCUENTO(
 	ID_HECHO_DESCUENTO int identity(1,1), 
 	ID_VENTA INT,
 	ID_DESCUENTO INT,
+	ID_TIEMPO INT,
 	DESCUENTO_IMPORTE DECIMAL(18,2)
-	PRIMARY KEY (ID_HECHO_DESCUENTO, ID_VENTA, ID_DESCUENTO)
+	PRIMARY KEY (ID_HECHO_DESCUENTO, ID_VENTA, ID_DESCUENTO, ID_TIEMPO)
 );
 GO
 
@@ -359,6 +381,9 @@ ALTER TABLE BI_M_AL_CUBO.BI_HECHO_VENTA ADD CONSTRAINT FK_HECHO_VENTA_ID_ENVIO F
 GO
 
 ALTER TABLE BI_M_AL_CUBO.BI_HECHO_VENTA ADD CONSTRAINT FK_HECHO_VENTA_ID_PROVINCIA FOREIGN KEY (ID_PROVINCIA) REFERENCES BI_M_AL_CUBO.BI_PROVINCIA(PROVINCIA_ID)
+GO
+
+ALTER TABLE BI_M_AL_CUBO.BI_HECHO_VENTA ADD CONSTRAINT FK_HECHO_VENTA_ID_CATEGORIA FOREIGN KEY (ID_CATEGORIA) REFERENCES BI_M_AL_CUBO.BI_CATEGORIA(CATEGORIA_ID)
 GO
 
 --DESC
@@ -510,15 +535,24 @@ BEGIN
 END
 GO
 
+CREATE PROCEDURE BI_M_AL_CUBO.MIGRAR_BI_CATEGORIA
+AS
+BEGIN
+	INSERT INTO BI_M_AL_CUBO.BI_CATEGORIA(CATEGORIA_ID, DESCRIPCION_CATEGORIA)
+	SELECT * FROM M_AL_CUBO.CATEGORIA
+END
+GO
+
 
 CREATE PROCEDURE BI_M_AL_CUBO.MIGRAR_BI_HECHO_VENTA
 AS
 BEGIN
-	INSERT INTO BI_M_AL_CUBO.BI_HECHO_VENTA (ID_VENTA, ID_PRODUCTO, ID_MEDIO_PAGO, ID_TIEMPO, ID_CLIENTE, ID_RANGO_EDAD, ID_CANAL_VENTA, ID_ENVIO, ID_PROVINCIA, PRECIO, UNIDADES)
-	SELECT V.VENTA_ID PV, VP.PRODUCTO_ID, V.VENTA_MEDIO_PAGO_ID, T.TIEMPO_ID, V.VENTA_CLIENTE_ID, BI_M_AL_CUBO.FX_CALCULAR_RANGO(V.VENTA_CLIENTE_ID) ,V.VENTA_CANAL_ID, V.MEDIO_ENVIO_LOC_ID, ENV.PROVINCIA_ID, PVV.PRECIO_COMPRA, PVV.PROD_CANTIDAD FROM M_AL_CUBO.VENTA V
+	INSERT INTO BI_M_AL_CUBO.BI_HECHO_VENTA (ID_VENTA, ID_PRODUCTO, ID_MEDIO_PAGO, ID_TIEMPO, ID_CLIENTE, ID_RANGO_EDAD, ID_CANAL_VENTA, ID_ENVIO, ID_PROVINCIA, ID_CATEGORIA, PRECIO, UNIDADES)
+	SELECT V.VENTA_ID PV, VP.PRODUCTO_ID, V.VENTA_MEDIO_PAGO_ID, T.TIEMPO_ID, V.VENTA_CLIENTE_ID, BI_M_AL_CUBO.FX_CALCULAR_RANGO(V.VENTA_CLIENTE_ID) ,V.VENTA_CANAL_ID, V.MEDIO_ENVIO_LOC_ID, ENV.PROVINCIA_ID, P.CATEGORIA_ID, PVV.PRECIO_COMPRA, PVV.PROD_CANTIDAD FROM M_AL_CUBO.VENTA V
 	JOIN BI_M_AL_CUBO.BI_ENVIO ENV on V.MEDIO_ENVIO_LOC_ID = ENV.ENVIO_ID 
 	JOIN M_AL_CUBO.PRODUCTO_VARIANTE_X_VENTA PVV ON V.VENTA_ID = PVV.VENTA_ID
 	JOIN M_AL_CUBO.VARIANTE_PRODUCTO VP ON VP.VARIANTE_PRODUCTO_ID = PVV.VARIANTE_PRODUCTO_ID
+	JOIN M_AL_CUBO.PRODUCTO P ON P.PRODUCTO_ID = VP.PRODUCTO_ID
 	JOIN BI_M_AL_CUBO.BI_TIEMPO T ON T.TIEMPO_ANIO = YEAR(VENTA_FECHA) AND T.TIEMPO_MES = MONTH(VENTA_FECHA)
 END
 GO
@@ -537,8 +571,10 @@ GO
 CREATE PROCEDURE BI_M_AL_CUBO.MIGRAR_BI_HECHO_DESCUENTO
 AS
 BEGIN
-	INSERT INTO BI_M_AL_CUBO.BI_HECHO_DESCUENTO(ID_VENTA, ID_DESCUENTO, DESCUENTO_IMPORTE)
-	SELECT VENTA_ID, DESCUENTO_ID, VENTA_DESCUENTO_IMPORTE FROM M_AL_CUBO.DESCUENTO_X_VENTA
+	INSERT INTO BI_M_AL_CUBO.BI_HECHO_DESCUENTO(ID_TIEMPO, ID_VENTA, ID_DESCUENTO, DESCUENTO_IMPORTE)
+	SELECT T.TIEMPO_ID, DV.VENTA_ID, DV.DESCUENTO_ID, DV.VENTA_DESCUENTO_IMPORTE FROM M_AL_CUBO.DESCUENTO_X_VENTA DV
+	JOIN M_AL_CUBO.VENTA V ON V.VENTA_ID = DV.VENTA_ID
+	JOIN BI_M_AL_CUBO.BI_TIEMPO T ON T.TIEMPO_ANIO = YEAR(V.VENTA_FECHA) AND T.TIEMPO_MES = MONTH(V.VENTA_FECHA)
 END
 GO
 
@@ -572,6 +608,9 @@ EXEC BI_M_AL_CUBO.MIGRAR_BI_CLIENTE
 EXEC BI_M_AL_CUBO.MIGRAR_BI_DESCUENTO
 --SELECT * FROM BI_M_AL_CUBO.BI_DESCUENTO
 
+EXEC BI_M_AL_CUBO.MIGRAR_BI_CATEGORIA
+--SELECT * FROM BI_M_AL_CUBO.BI_CATEGORIA
+
 EXEC BI_M_AL_CUBO.MIGRAR_BI_HECHO_VENTA
 --SELECT * FROM BI_M_AL_CUBO.BI_HECHO_VENTA
 
@@ -580,25 +619,68 @@ EXEC BI_M_AL_CUBO.MIGRAR_BI_HECHO_COMPRA
 
 EXEC BI_M_AL_CUBO.MIGRAR_BI_HECHO_DESCUENTO
 --select * from BI_M_AL_CUBO.BI_HECHO_DESCUENTO
-
+GO
 
 ---------------------------------
 
 
 /*EJERCICIO 1 */
 
+/*
+Las ganancias mensuales de cada canal de venta. Se entiende por ganancias al total de las ventas, menos el total de las compras, 
+menos los costos de transacción totales aplicados asociados los medios de pagos utilizados en las mismas.
+
+	PARA VER LA RELACION ENTRE COMPRA Y VENTA AGRUPO LAS CONSULAS POR ID_PRODUCTO Y ID_TIEMPO
+*/
+
+
 CREATE VIEW M_AL_CUBO.GANANCIAS_MENSUALES_CANAL_VENTA
 AS
-SELECT (columnas)
-FROM  (tablas)
+SELECT T.TIEMPO_ANIO AÑO, T.TIEMPO_MES MES, CV.CANAL_DESC, 
+    (SELECT TOP 1 ISNULL(SUM(VV.PRECIO * VV.UNIDADES),0) FROM BI_M_AL_CUBO.BI_HECHO_VENTA VV WHERE VV.ID_TIEMPO = HV.ID_TIEMPO AND HV.ID_CANAL_VENTA = VV.ID_CANAL_VENTA) 
+    - 
+    (SELECT TOP 1 ISNULL(SUM(PRECIO * UNIDADES),0) FROM BI_M_AL_CUBO.BI_HECHO_COMPRA WHERE ID_TIEMPO = HV.ID_TIEMPO)
+    - 
+    SUM(MEDIO_PAGO_COSTO) GANANCIA_MENSUAL
+FROM BI_M_AL_CUBO.BI_HECHO_VENTA HV 
+JOIN BI_M_AL_CUBO.BI_CANAL_VENTA CV on CV.CANAL_VENTA_ID = HV.ID_CANAL_VENTA
+JOIN BI_M_AL_CUBO.BI_TIEMPO T ON T.TIEMPO_ID = HV.ID_TIEMPO
+JOIN BI_M_AL_CUBO.BI_MEDIO_PAGO MP ON MP.MEDIO_PAGO_ID = HV.ID_MEDIO_PAGO
+GROUP BY CV.CANAL_DESC, T.TIEMPO_ANIO, T.TIEMPO_MES, HV.ID_TIEMPO, HV.ID_CANAL_VENTA
+ORDER BY 3 DESC, 2 ASC
 
 
 /*EJERCICIO 2*/
 
+/*
+Los 5 productos con mayor rentabilidad anual, con sus respectivos %. Se entiende por rentabilidad a los ingresos generados por el producto (ventas)
+ durante el periodo menos la inversión realizada en el producto (compras) durante el periodo, todo esto sobre dichos ingresos.
+ */
+
+
 CREATE VIEW M_AL_CUBO.PRODUCTOS_RENTABLES
 AS
-SELECT (columnas)
-FROM  (tablas)
+SELECT TV.TIEMPO_ANIO AÑO, HV.ID_PRODUCTO PRODUCTO, 
+		SUM(HV.PRECIO*HV.UNIDADES) VENTA,
+		(SELECT TOP 1 ISNULL(SUM(C.PRECIO * C.UNIDADES),0) FROM BI_M_AL_CUBO.BI_HECHO_COMPRA C JOIN BI_M_AL_CUBO.BI_TIEMPO T ON T.TIEMPO_ID = C.ID_TIEMPO
+		WHERE C.ID_PRODUCTO = HV.ID_PRODUCTO AND T.TIEMPO_ANIO = TV.TIEMPO_ANIO GROUP BY C.ID_PRODUCTO, T.TIEMPO_ANIO) COMPRA,
+		(SUM(HV.PRECIO*HV.UNIDADES) - (SELECT TOP 1 ISNULL(SUM(C.PRECIO * C.UNIDADES),0) FROM BI_M_AL_CUBO.BI_HECHO_COMPRA C JOIN BI_M_AL_CUBO.BI_TIEMPO T ON T.TIEMPO_ID = C.ID_TIEMPO
+		WHERE C.ID_PRODUCTO = HV.ID_PRODUCTO AND T.TIEMPO_ANIO = TV.TIEMPO_ANIO GROUP BY C.ID_PRODUCTO, T.TIEMPO_ANIO))/SUM(HV.PRECIO*HV.UNIDADES)*100 RENTABILIDAD
+
+	FROM BI_M_AL_CUBO.BI_HECHO_VENTA HV
+	JOIN BI_M_AL_CUBO.BI_TIEMPO TV ON TV.TIEMPO_ID = HV.ID_TIEMPO 
+	
+	WHERE HV.ID_PRODUCTO IN 
+	(
+		SELECT TOP 5 V.ID_PRODUCTO FROM BI_M_AL_CUBO.BI_HECHO_VENTA V JOIN BI_M_AL_CUBO.BI_TIEMPO TI ON TI.TIEMPO_ID = V.ID_TIEMPO
+		GROUP BY V.ID_PRODUCTO, TI.TIEMPO_ANIO, V.ID_TIEMPO
+		ORDER BY ((SUM(V.PRECIO*V.UNIDADES) - 
+		(SELECT TOP 1 SUM(C.PRECIO * C.UNIDADES) FROM BI_M_AL_CUBO.BI_HECHO_COMPRA C JOIN BI_M_AL_CUBO.BI_TIEMPO T ON T.TIEMPO_ID = C.ID_TIEMPO
+		WHERE C.ID_PRODUCTO = V.ID_PRODUCTO AND C.ID_TIEMPO = V.ID_TIEMPO GROUP BY C.ID_PRODUCTO, T.TIEMPO_ANIO))/SUM(V.PRECIO*V.UNIDADES)*100) DESC
+	) 
+	
+GROUP BY HV.ID_PRODUCTO, TV.TIEMPO_ANIO
+ORDER BY 1, 3 DESC
 
 
 /*EJERCICIO  3 */
@@ -728,46 +810,12 @@ GROUP BY
     EJERCICIO 06
 *********************/
 
-/*
-     Porcentaje de envíos realizados a cada Provincia por mes. El porcentaje
-    debe representar la cantidad de envíos realizados a cada provincia sobre
-    total de envío mensuales
-*/
-
--- Tomar todos los envios y agrupar por provincia y mes
--- Obtener el total de envios por mes
--- Obtener el total de envios por provincia y mes
--- Obtener el porcentaje de envios por provincia y mes
-
-/*
-    Table - HECHO_VENTA
-    Column - ID_VENTA PK
-    Column - ID_ENVIO FK
-    Column - ID_TIEMPO FK
-
-    Table - DIMENSION_TIEMPO
-    Column - ID_TIEMPO PK
-    Column - TIEMPO_MES
-
-    Table - BI_ENVIO
-    Column - envio_id PK
-    Column - provincia_id FK
-    Column - envio_precio
-*/
-
-/*
-    Explicación:
-    1. Obtenemos todas las ventas haciendo join con envio y con tiempo
-    2. Agrupamos por id_provincia y tiempo_mes
-    3. En la agrupación hacemos la operación de obtener el total
-    4. Calculamos y mostramos
-*/
 
 CREATE VIEW M_AL_CUBO.ENVIOS_PROVINCIALES_MENSUALES
 AS
 SELECT
-    be.provincia_id AS id_provincia,
-    dt.tiempo_mes AS mes,
+    PV.PROVINCIA_NOMBRE AS PROVINCIA,
+    dt.tiempo_mes AS MES,
     (COUNT(hv.ID_VENTA) * 100) / (
         SELECT COUNT(hv2.ID_VENTA)
         FROM BI_M_AL_CUBO.BI_HECHO_VENTA hv2
@@ -777,102 +825,36 @@ SELECT
 FROM BI_M_AL_CUBO.BI_HECHO_VENTA hv
     INNER JOIN BI_M_AL_CUBO.BI_ENVIO be ON hv.ID_ENVIO = be.envio_id
     INNER JOIN BI_M_AL_CUBO.BI_TIEMPO dt ON hv.ID_TIEMPO = dt.tiempo_id
+	INNER JOIN BI_M_AL_CUBO.BI_PROVINCIA PV ON PV.PROVINCIA_ID = BE.PROVINCIA_ID
 GROUP BY
-    be.provincia_id,
+    PV.PROVINCIA_NOMBRE,
     dt.tiempo_mes
-
+order by 2,1
 
 /********************
     EJERCICIO 07
 *********************/
 
-/*
-    Valor promedio de envío por Provincia por Medio De Envío anual. 
-*/
-
--- Tomar todos los envios y agrupar por provincia y medio de envio y anio
--- Obtener el promedio de envios por provincia y medio de envio y anio
-
-/*
-    Table - HECHO_VENTA
-    Column - ID_VENTA PK
-    Column - ID_ENVIO FK
-    Column - ID_TIEMPO FK
-
-    Table - DIMENSION_TIEMPO
-    Column - ID_TIEMPO PK
-    Column - TIEMPO_ANIO
-
-    Table - BI_ENVIO
-    Column - envio_id PK
-    Column - provincia_id FK
-    Column - envio_precio
-*/
-
-/*
-    Explicación:
-    1. Obtenemos todas las ventas haciendo join con envio y con tiempo
-    2. Agrupamos por id_provincia, id_provincia y tiempo_anio
-    3. En la agrupación hacemos la operación de obtener el promedio
-    4. Mostramos
-*/
-
-
-
 CREATE VIEW M_AL_CUBO.ENVIOS_PROVINCUALES_ANUALES
 AS
 SELECT
+	dt.tiempo_anio AS año,
     be.provincia_id AS id_provincia,
-    be.envio_id AS id_medio_envio,
-    dt.tiempo_anio AS anio,
-    AVG(be.envio_precio) AS promedio_envio
+    be.ENVIO_DETALLE AS id_medio_envio,
+    AVG(isnull(be.envio_precio,0)) AS promedio_envio
 FROM BI_M_AL_CUBO.BI_HECHO_VENTA hv
     INNER JOIN BI_M_AL_CUBO.BI_ENVIO be ON hv.ID_ENVIO = be.envio_id
     INNER JOIN BI_M_AL_CUBO.BI_TIEMPO dt ON hv.ID_TIEMPO = dt.tiempo_id
 GROUP BY
     be.provincia_id,
-    be.envio_id,
+    be.envio_detalle,
     dt.tiempo_anio
+order by 1 asc
 
 
 /********************
     EJERCICIO 08
 *********************/
-
-/*
-    Aumento promedio de precios de cada proveedor anual. Para calcular este
-    indicador se debe tomar como referencia el máximo precio por año menos
-    el mínimo todo esto divido el mínimo precio del año. Teniendo en cuenta
-    que los precios siempre van en aumento. 
-*/
-
--- Aumento promedio de precios de cada proveedor anual
--- ((Tomar máximo precio por año) - (Mínimo precio por año)) / (Mínimo precio por año)
-
-/*
-    Explicación:
-    1. Obtenemos todas las compras haciendo join con proveedor y con tiempo
-    2. Agrupamos por id_producto, id_proveedor y tiempo_anio
-    3. En la agrupación hacemos la operación de obtener el máximo y el mínimo
-    4. Mostramos
-*/
-
-/*
-    Table - BI_PROVEEDOR
-    Column - proveedor_id PK
-    Column - proveedor_cuit
-
-    Table - HECHO_COMPRA
-    Column - ID_PRODUCTO
-    Column - ID_PROVEEDOR FK
-    Column - ID_TIEMPO FK
-    Column - compra_precio
-
-    Table - DIMENSION_TIEMPO
-    Column - ID_TIEMPO PK
-    Column - TIEMPO_ANIO
-*/
-
 
 CREATE VIEW M_AL_CUBO.AUMENTO_PRECIOS_ANUAL
 AS
@@ -880,7 +862,7 @@ SELECT
     hc.ID_PRODUCTO AS id_producto,
     bp.proveedor_cuit AS cuit_proveedor,
     dt.tiempo_anio AS anio,
-    (MAX(hc.precio) - MIN(hc.precio)) / MIN(hc.precio) AS aumento_promedio
+    (MAX(hc.precio) - MIN(hc.precio)) / MIN(hc.precio) * 100 AS aumento_porcentaje
 FROM BI_M_AL_CUBO.BI_HECHO_COMPRA hc
     INNER JOIN BI_M_AL_CUBO.BI_PROVEEDOR bp ON hc.ID_PROVEEDOR = bp.proveedor_id
     INNER JOIN BI_M_AL_CUBO.BI_TIEMPO dt ON hc.ID_TIEMPO = dt.tiempo_id
@@ -894,81 +876,23 @@ GROUP BY
     EJERCICIO 09
 *********************/
 
-
---  Los 3 productos con mayor cantidad de reposición por mes.
-
-/*
-    Table - HECHO_COMPRA
-    Column - ID_COMPRA PK
-    Column - ID_PRODUCTO
-    Column - ID_TIEMPO FK
-    Column - CANTIDAD
-
-    Table - DIMENSION_TIEMPO
-    Column - ID_TIEMPO PK
-    Column - TIEMPO_MES
-    Column - TIEMPO_ANIO
-*/
-
--- Todas las ventas por mes de cada producto
-
 CREATE VIEW M_AL_CUBO.PRODUCTOS_CON_REPOSICIÓN
-AS
-SELECT
-    SELECT
-        hc.ID_PRODUCTO AS id_producto,
-        dt.tiempo_mes AS mes,
-        SUM(hc.UNIDADES) AS cantidad_reposicion
+AS 
+	SELECT T.TIEMPO_ANIO, T.TIEMPO_MES MES, P.ID_PRODUCTO PRODUCTO, SUM(P.UNIDADES) REPOSICION FROM BI_M_AL_CUBO.BI_HECHO_COMPRA P
+	JOIN BI_M_AL_CUBO.BI_TIEMPO T ON T.TIEMPO_ID = P.ID_TIEMPO
+	
+	WHERE P.ID_PRODUCTO IN (
+	
+	SELECT TOP 3
+        hc.ID_PRODUCTO 
     FROM BI_M_AL_CUBO.BI_HECHO_COMPRA hc
         INNER JOIN BI_M_AL_CUBO.BI_TIEMPO dt ON hc.ID_TIEMPO = dt.tiempo_id
     GROUP BY
         dt.tiempo_mes,
         hc.ID_PRODUCTO
-FROM (
-    SELECT
-        ROW_NUMBER() OVER (PARTITION BY mes ORDER BY mes, cantidad_reposicion DESC) AS r,
-        t.*
-    FROM
-        xxx t) x
-WHERE
-    x.r <= 3;
-
-/*
-    Explicación:
-    1. Obtenemos todas las compras y les hacemos join por la tabla dimensión tiempo
-    2. Agrupamos por mes y producto
-    3. Con esto obtenemos la cantidad total de compras DE CADA PRODUCTO para CADA MES
-    4. Ahora solo nos queda obtener los primeros 3 resultados de cada grupo
-    
-    Links:
-    https://stackoverflow.com/questions/51770408/how-to-select-top-n-records-for-each-category
-    https://stackoverflow.com/questions/1124603/grouped-limit-in-postgresql-show-the-first-n-rows-for-each-group
-*/
-
--- Depende la versión de SQL el query de arriba no anda, en ese caso debería andar el de abajo.
-/*
-    with
-        basedata as (    
-            SELECT
-                hc.ID_PRODUCTO AS id_producto,
-                dt.tiempo_mes AS mes,
-                SUM(hc.CANTIDAD) AS cantidad_reposicion
-            FROM HECHO_COMPRA hc
-                INNER JOIN DIMENSION_TIEMPO dt ON hc.ID_TIEMPO = dt.tiempo_id
-            GROUP BY
-                dt.tiempo_mes,
-                hc.ID_PRODUCTO 
-        )
-        ,
-        basedata_with_rank as (
-        select t.*
-            , row_number() over (partition by CompanyNumber order by mes, cantidad_reposicion DESC) rn
-        from basedata
-        )
-        select *
-        from basedata_with_rank
-        where rn <= 5
-        order by mes, cantidad_reposicion DESC
-*/
+	ORDER BY SUM(HC.UNIDADES) DESC)
 
 
+	GROUP BY P.ID_PRODUCTO, T.TIEMPO_MES, T.TIEMPO_ANIO
+	ORDER BY 2 ASC, 3 DESC
+GO
