@@ -217,7 +217,36 @@ IF OBJECT_ID('BI_M_AL_CUBO.MIGRAR_CATEGORIA') IS NOT NULL
   DROP PROCEDURE BI_M_AL_CUBO.MIGRAR_CATEGORIA
 GO
 
+-- DROP VIEWS
+IF OBJECT_ID('M_AL_CUBO.GANANCIAS_MENSUALES_CANAL_VENTA', 'V') IS NOT NULL
+	DROP VIEW M_AL_CUBO.GANANCIAS_MENSUALES_CANAL_VENTA
+GO
 
+IF OBJECT_ID('M_AL_CUBO.PRODUCTOS_RENTABLES', 'V') IS NOT NULL
+	DROP VIEW M_AL_CUBO.PRODUCTOS_RENTABLES
+GO
+
+IF OBJECT_ID('M_AL_CUBO.CATEGORIAS_MAS_VENDIDAS', 'V') IS NOT NULL
+	DROP VIEW M_AL_CUBO.CATEGORIAS_MAS_VENDIDAS
+GO
+IF OBJECT_ID('M_AL_CUBO.INGRESOS_MEDIO_PAGO_MENSUAL', 'V') IS NOT NULL
+	DROP VIEW M_AL_CUBO.INGRESOS_MEDIO_PAGO_MENSUAL
+GO
+IF OBJECT_ID('M_AL_CUBO.IMPORTE_DESCUENTOS', 'V') IS NOT NULL
+	DROP VIEW M_AL_CUBO.IMPORTE_DESCUENTOS
+GO
+IF OBJECT_ID('M_AL_CUBO.ENVIOS_PROVINCIALES_MENSUALES', 'V') IS NOT NULL
+	DROP VIEW M_AL_CUBO.ENVIOS_PROVINCIALES_MENSUALES
+GO
+IF OBJECT_ID('M_AL_CUBO.ENVIOS_PROVINCIALES_ANUALES', 'V') IS NOT NULL
+	DROP VIEW M_AL_CUBO.ENVIOS_PROVINCIALES_ANUALES
+GO
+IF OBJECT_ID('M_AL_CUBO.AUMENTO_PRECIOS_ANUAL', 'V') IS NOT NULL
+	DROP VIEW M_AL_CUBO.AUMENTO_PRECIOS_ANUAL
+GO
+IF OBJECT_ID('M_AL_CUBO.PRODUCTOS_CON_REPOSICIÓN', 'V') IS NOT NULL
+	DROP VIEW M_AL_CUBO.PRODUCTOS_CON_REPOSICIÓN
+GO
 --DROP ESQUEMA
 IF EXISTS (SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'BI_M_AL_CUBO')
   DROP SCHEMA BI_M_AL_CUBO
@@ -623,15 +652,10 @@ GO
 
 ---------------------------------
 
+/********************
+    EJERCICIO 01
+*********************/
 
-/*EJERCICIO 1 */
-
-/*
-Las ganancias mensuales de cada canal de venta. Se entiende por ganancias al total de las ventas, menos el total de las compras, 
-menos los costos de transacción totales aplicados asociados los medios de pagos utilizados en las mismas.
-
-	PARA VER LA RELACION ENTRE COMPRA Y VENTA AGRUPO LAS CONSULAS POR ID_PRODUCTO Y ID_TIEMPO
-*/
 
 
 CREATE VIEW M_AL_CUBO.GANANCIAS_MENSUALES_CANAL_VENTA
@@ -647,23 +671,15 @@ JOIN BI_M_AL_CUBO.BI_CANAL_VENTA CV on CV.CANAL_VENTA_ID = HV.ID_CANAL_VENTA
 JOIN BI_M_AL_CUBO.BI_TIEMPO T ON T.TIEMPO_ID = HV.ID_TIEMPO
 JOIN BI_M_AL_CUBO.BI_MEDIO_PAGO MP ON MP.MEDIO_PAGO_ID = HV.ID_MEDIO_PAGO
 GROUP BY CV.CANAL_DESC, T.TIEMPO_ANIO, T.TIEMPO_MES, HV.ID_TIEMPO, HV.ID_CANAL_VENTA
-ORDER BY 3 DESC, 2 ASC
+GO
 
-
-/*EJERCICIO 2*/
-
-/*
-Los 5 productos con mayor rentabilidad anual, con sus respectivos %. Se entiende por rentabilidad a los ingresos generados por el producto (ventas)
- durante el periodo menos la inversión realizada en el producto (compras) durante el periodo, todo esto sobre dichos ingresos.
- */
-
+/********************
+    EJERCICIO 02
+*********************/
 
 CREATE VIEW M_AL_CUBO.PRODUCTOS_RENTABLES
 AS
 SELECT TV.TIEMPO_ANIO AÑO, HV.ID_PRODUCTO PRODUCTO, 
-		SUM(HV.PRECIO*HV.UNIDADES) VENTA,
-		(SELECT TOP 1 ISNULL(SUM(C.PRECIO * C.UNIDADES),0) FROM BI_M_AL_CUBO.BI_HECHO_COMPRA C JOIN BI_M_AL_CUBO.BI_TIEMPO T ON T.TIEMPO_ID = C.ID_TIEMPO
-		WHERE C.ID_PRODUCTO = HV.ID_PRODUCTO AND T.TIEMPO_ANIO = TV.TIEMPO_ANIO GROUP BY C.ID_PRODUCTO, T.TIEMPO_ANIO) COMPRA,
 		(SUM(HV.PRECIO*HV.UNIDADES) - (SELECT TOP 1 ISNULL(SUM(C.PRECIO * C.UNIDADES),0) FROM BI_M_AL_CUBO.BI_HECHO_COMPRA C JOIN BI_M_AL_CUBO.BI_TIEMPO T ON T.TIEMPO_ID = C.ID_TIEMPO
 		WHERE C.ID_PRODUCTO = HV.ID_PRODUCTO AND T.TIEMPO_ANIO = TV.TIEMPO_ANIO GROUP BY C.ID_PRODUCTO, T.TIEMPO_ANIO))/SUM(HV.PRECIO*HV.UNIDADES)*100 RENTABILIDAD
 
@@ -680,136 +696,94 @@ SELECT TV.TIEMPO_ANIO AÑO, HV.ID_PRODUCTO PRODUCTO,
 	) 
 	
 GROUP BY HV.ID_PRODUCTO, TV.TIEMPO_ANIO
-ORDER BY 1, 3 DESC
+GO
 
-
-/*EJERCICIO  3 */
+/********************
+    EJERCICIO 03
+*********************/
 
 CREATE VIEW M_AL_CUBO.CATEGORIAS_MAS_VENDIDAS
 AS
-SELECT (columnas)
-FROM  (tablas)
+SELECT
+        DT.TIEMPO_ANIO anio,
+		dt.tiempo_mes AS mes,
+		c.descripcion_categoria AS categoria,
+        R.RANGO_EDAD_DESCRIPCION AS rango_etario,
+        COUNT(hv.UNIDADES) AS total_ventas
+    FROM BI_M_AL_CUBO.BI_HECHO_VENTA hv
+        INNER JOIN BI_M_AL_CUBO.BI_CLIENTE bic ON hv.ID_CLIENTE = bic.cliente_id
+        INNER JOIN BI_M_AL_CUBO.BI_TIEMPO dt ON hv.ID_TIEMPO = dt.tiempo_id
+        INNER JOIN BI_M_AL_CUBO.BI_CATEGORIA c ON hv.ID_CATEGORIA = c.categoria_id
+		INNER JOIN BI_M_AL_CUBO.BI_RANGO_EDAD R ON R.RANGO_EDAD_ID = BI_M_AL_CUBO.FX_CALCULAR_RANGO(bic.cliente_id)
 
--- UY EN ESTE TMB VA A HABER QUE USAR UN OVER ROW NUMER y no me sale jajan't
--- FALTA MIGRAR LA CATEGORIA y ponerle el row number 
-select ID_PRODUCTO, ID_RANGO_EDAD, SUM(UNIDADES) from BI_M_AL_CUBO.BI_HECHO_VENTA HV 
-GROUP BY ID_PRODUCTO, ID_RANGO_EDAD
+	WHERE HV.ID_CATEGORIA IN (
+		SELECT TOP 5 ID_CATEGORIA FROM BI_M_AL_CUBO.BI_HECHO_VENTA 
+		JOIN BI_M_AL_CUBO.BI_TIEMPO T ON T.TIEMPO_ID = ID_TIEMPO
+		GROUP BY ID_CATEGORIA, TIEMPO_ANIO, TIEMPO_MES
+		ORDER BY SUM(UNIDADES) DESC)
+		 
 
-
-
+    GROUP BY
+        c.descripcion_categoria,
+         R.RANGO_EDAD_DESCRIPCION,
+        dt.tiempo_mes,
+		DT.TIEMPO_ANIO
+GO
 
 /********************
     EJERCICIO 04
-    -- TODO: REVISAR!!!! 
-    -- La unica relación entre descuento y venta es por mes y año y hay muchos
-     -- Supuse que HECHO_DESCUENTO conoce HECHO_VENTA al que se aplicó el descuento
 *********************/
-
-/*
-    Total de Ingresos por cada medio de pago por mes, descontando los costos
-    por medio de pago (en caso que aplique) y descuentos por medio de pago
-    (en caso que aplique) 
-*/
-
-
-/*
-    Table - HECHO_VENTA
-    Column - ID_VENTA PK
-    Column - ID_TIEMPO FK
-    Column - ID_MEDIO_PAGO FK
-    Column - VENTA_UNIDAD
-    Column - UNIDADES
-
-    Table - DIMENSION_TIEMPO
-    Column - ID_TIEMPO PK
-    Column - TIEMPO_MES
-
-    Table - BI_MEDIO_PAGO
-    Column - MEDIO_PAGO_ID PK
-
-    Table - HECHO_DESCUENTO
-    Column - ID_DESCUENTO PK
-    Column - ID_TIPO_DESCUENTO FK
-    Column - ID_TIEMPO FK
-    Column - ID_MEDIO_PAGO FK
-    Column - DESCUENTO_IMPORTE
-    Column - ID_VENTA FK
-*/
 
 CREATE VIEW M_AL_CUBO.INGRESOS_MEDIO_PAGO_MENSUAL
 AS
-SELECT (columnas)
-FROM  (tablas)
+SELECT DISTINCT T.TIEMPO_ANIO, T.TIEMPO_MES, MP.MEDIO_PAGO_DESCRIPCION,
+	(CASE WHEN EXISTS (SELECT * FROM BI_M_AL_CUBO.BI_HECHO_DESCUENTO JOIN BI_M_AL_CUBO.BI_DESCUENTO D ON D.DESCUENTO_ID = DESCUENTO_ID WHERE DESCUENTO_CONCEPTO = MEDIO_PAGO_DESCRIPCION GROUP BY ID_VENTA, ID_DESCUENTO) 
+	THEN ISNULL(SUM(PRECIO * UNIDADES),0) - ISNULL(SUM(MEDIO_PAGO_COSTO),0) - 
+	(SELECT TOP 1 ISNULL(SUM(DESCUENTO_IMPORTE),0) FROM BI_M_AL_CUBO.BI_HECHO_DESCUENTO 
+	JOIN BI_M_AL_CUBO.BI_DESCUENTO D ON D.DESCUENTO_ID = DESCUENTO_ID 
+	JOIN BI_M_AL_CUBO.BI_TIEMPO TI ON TI.TIEMPO_ID = TIEMPO_ID
+	WHERE DESCUENTO_CONCEPTO = MP.MEDIO_PAGO_DESCRIPCION AND TI.TIEMPO_ANIO = T.TIEMPO_ANIO AND TI.TIEMPO_MES = T.TIEMPO_MES GROUP BY TI.TIEMPO_ANIO, TI.TIEMPO_MES, ID_DESCUENTO, ID_VENTA)
+	ELSE ISNULL(SUM(PRECIO * UNIDADES),0) - ISNULL(SUM(MEDIO_PAGO_COSTO),0) - 
+	(SELECT TOP 1 ISNULL(SUM(DESCUENTO_IMPORTE),0) FROM BI_M_AL_CUBO.BI_HECHO_DESCUENTO 
+	JOIN BI_M_AL_CUBO.BI_TIEMPO TI ON TI.TIEMPO_ID = TIEMPO_ID
+	WHERE ID_DESCUENTO = 2  AND TI.TIEMPO_ANIO = T.TIEMPO_ANIO AND TI.TIEMPO_MES = T.TIEMPO_MES GROUP BY TI.TIEMPO_ANIO, TI.TIEMPO_MES, ID_DESCUENTO, ID_VENTA) END) AS INGRESOS 
+	
+	
+FROM BI_M_AL_CUBO.BI_HECHO_VENTA V 
+JOIN BI_M_AL_CUBO.BI_MEDIO_PAGO MP ON MP.MEDIO_PAGO_ID = V.ID_MEDIO_PAGO
+JOIN BI_M_AL_CUBO.BI_TIEMPO T ON T.TIEMPO_ID = V.ID_TIEMPO
+GROUP BY T.TIEMPO_ANIO, T.TIEMPO_MES, MP.MEDIO_PAGO_DESCRIPCION
+GO
 
 
 
 /********************
     EJERCICIO 05
-    -- TODO: REVISAR!!!! 
-    -- La unica relación entre descuento y venta es por mes y año y hay muchos
-    -- Supuse que HECHO_DESCUENTO conoce HECHO_VENTA al que se aplicó el descuento
 *********************/
 
-/*
-    Importe total en descuentos aplicados según su tipo de descuento, por
-    canal de venta, por mes. Se entiende por tipo de descuento como los
-    correspondientes a envío, medio de pago, cupones, etc)
-*/
-
--- Tomar todos los descuentos y agrupar por tipo de descuento y canal de venta y mes
--- Agrupar y sumar los descuentos importe
-
-/*
-    Table - HECHO_DESCUENTO
-    Column - ID_DESCUENTO PK
-    Column - DESCUENTO_IMPORTE
-    Column - ID_TIEMPO FK
-    Column - ID_VENTA FK
-
-    Table - BI_ENVIO
-    Column - ID_TIEMPO PK
-    Column - tiempo_mes
-
-    Table - HECHO_VENTA
-    Column - ID_TIEMPO FK
-    Column - ID_CANAL_VENTA FK
-
-    Table - BI_CANAL_VENTA
-    Column - canal_venta_id PK
-*/
-
-
-/*
-    Explicacion:
-    1. Obtenemos todos los descuentos haciendo join con la tabla tiempo y descuento
-    2. Hacemos join con la tabla BI_CANAL_VENTA para obtener el canal de venta
-    3. Agrupamos por tipo de descuento, canal de venta y mes
-    4. En la agrupación hacemos la operación de obtener el total
-    5. Mostramos
-*/
-
---- esta se va a poder hacer cuando arreglemos la relación con el tiempo 
 CREATE VIEW M_AL_CUBO.IMPORTE_DESCUENTOS
 AS
 SELECT
-    bd.descuento_id AS id_tipo_descuento,
-    bcv.canal_venta_id AS id_canal_venta,
-    dt.tiempo_mes AS mes,
+	dt.tiempo_anio año,
+	dt.tiempo_mes AS mes,
+    DD.DESCUENTO_CONCEPTO AS tipo_descuento,
+    bcv.CANAL_DESC AS canal_venta,
     SUM(bd.descuento_importe) AS total_descuentos
 FROM BI_M_AL_CUBO.BI_HECHO_DESCUENTO bd
     INNER JOIN BI_M_AL_CUBO.BI_TIEMPO dt ON bd.ID_TIEMPO = dt.tiempo_id
-    INNER JOIN BI_M_AL_CUBO.BI_HECHO_VENTA hv ON bd.ID_VENTA = hv.ID_VENTA
+    INNER JOIN (select distinct v.id_venta, v.id_canal_venta, v.id_tiempo from BI_M_AL_CUBO.BI_HECHO_VENTA v) hv on hv.id_venta = bd.ID_VENTA
     INNER JOIN BI_M_AL_CUBO.BI_CANAL_VENTA bcv ON hv.ID_CANAL_VENTA = bcv.canal_venta_id
+	JOIN BI_M_AL_CUBO.BI_DESCUENTO DD ON BD.ID_DESCUENTO = DD.DESCUENTO_ID
 GROUP BY
-    bd.descuento_id,
-    bcv.canal_venta_id,
-    dt.tiempo_mes
-
+    DD.DESCUENTO_CONCEPTO,
+    bcv.CANAL_DESC,
+    dt.tiempo_mes,
+	dt.tiempo_anio
+GO
 
 /********************
     EJERCICIO 06
 *********************/
-
 
 CREATE VIEW M_AL_CUBO.ENVIOS_PROVINCIALES_MENSUALES
 AS
@@ -829,13 +803,12 @@ FROM BI_M_AL_CUBO.BI_HECHO_VENTA hv
 GROUP BY
     PV.PROVINCIA_NOMBRE,
     dt.tiempo_mes
-order by 2,1
-
+GO
 /********************
     EJERCICIO 07
 *********************/
 
-CREATE VIEW M_AL_CUBO.ENVIOS_PROVINCUALES_ANUALES
+CREATE VIEW M_AL_CUBO.ENVIOS_PROVINCIALES_ANUALES
 AS
 SELECT
 	dt.tiempo_anio AS año,
@@ -849,8 +822,7 @@ GROUP BY
     be.provincia_id,
     be.envio_detalle,
     dt.tiempo_anio
-order by 1 asc
-
+GO
 
 /********************
     EJERCICIO 08
@@ -870,13 +842,13 @@ GROUP BY
     hc.ID_PRODUCTO,
     bp.proveedor_cuit,
     dt.tiempo_anio
-
+GO
 
 /********************
     EJERCICIO 09
 *********************/
 
-CREATE VIEW M_AL_CUBO.PRODUCTOS_CON_REPOSICIÓN
+CREATE VIEW M_AL_CUBO.PRODUCTOS_CON_REPOSICION
 AS 
 	SELECT T.TIEMPO_ANIO, T.TIEMPO_MES MES, P.ID_PRODUCTO PRODUCTO, SUM(P.UNIDADES) REPOSICION FROM BI_M_AL_CUBO.BI_HECHO_COMPRA P
 	JOIN BI_M_AL_CUBO.BI_TIEMPO T ON T.TIEMPO_ID = P.ID_TIEMPO
@@ -894,5 +866,4 @@ AS
 
 
 	GROUP BY P.ID_PRODUCTO, T.TIEMPO_MES, T.TIEMPO_ANIO
-	ORDER BY 2 ASC, 3 DESC
 GO
